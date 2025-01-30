@@ -211,3 +211,57 @@ plt.xlabel("Epoch")
 plt.ylabel("MSE")
 plt.legend()
 plt.show()
+
+
+# ----------------------
+# Evaluate on the Test Set & Visualize
+#
+# To get predictions, we’ll run through the test_loader once more, storing predictions in order. Then we can invert the scaling and compare to the ground truth.
+# ----------------------
+
+# Switch to eval mode, gather predictions
+lstm_model.eval()
+test_preds_scaled = []
+test_targets_scaled = []
+
+with torch.no_grad():
+    for batch_X, batch_y in test_loader:
+        preds = lstm_model(batch_X).squeeze()
+        test_preds_scaled.append(preds.cpu().numpy())
+        test_targets_scaled.append(batch_y.squeeze().cpu().numpy())
+
+# Concatenate all batches
+test_preds_scaled = np.concatenate(test_preds_scaled, axis=0)
+test_targets_scaled = np.concatenate(test_targets_scaled, axis=0)
+
+# Invert scaling
+test_preds = scaler_y.inverse_transform(test_preds_scaled.reshape(-1, 1)).flatten()
+test_targets = scaler_y.inverse_transform(test_targets_scaled.reshape(-1, 1)).flatten()
+
+# Align dates for plotting
+test_dates_for_plot = dates_test.iloc[history_size:].values  # offset by history_size
+
+mae_lstm = mean_absolute_error(test_targets, test_preds)
+mse_lstm = mean_squared_error(test_targets, test_preds)
+rmse_lstm = np.sqrt(mse_lstm)
+
+print(f"LSTM Test MAE: {mae_lstm:.3f}")
+print(f"LSTM Test RMSE: {rmse_lstm:.3f}")
+
+plt.figure(figsize=(12, 5))
+plt.plot(test_dates_for_plot, test_targets, label="Actual", color="blue")
+plt.plot(test_dates_for_plot, test_preds, label="LSTM Predicted", color="red")
+plt.title("LSTM Predictions vs Actual")
+plt.xlabel("Date")
+plt.ylabel("y1")
+plt.legend()
+plt.show()
+
+# Residuals
+residuals_lstm = test_targets - test_preds
+plt.figure(figsize=(10, 4))
+plt.hist(residuals_lstm, bins=30, alpha=0.7, color="gray")
+plt.title("LSTM: Distribution of Residuals")
+plt.xlabel("Error (y_true - y_pred)")
+plt.ylabel("Frequency")
+plt.show()
