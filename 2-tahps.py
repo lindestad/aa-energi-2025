@@ -424,3 +424,17 @@ plt.title("Transformer: Distribution of Residuals")
 plt.xlabel("Error (y_true - y_pred)")
 plt.ylabel("Frequency")
 plt.show()
+
+
+# ----------------------
+# Compare LSTM & Transformer
+# ----------------------
+plt.figure(figsize=(12, 5))
+plt.plot(test_dates_for_plot, test_targets, label="Actual", color="blue")
+plt.plot(test_dates_for_plot, test_preds, label="LSTM", color="red")
+plt.plot(test_dates_for_plot, test_preds_t, label="Transformer", color="green")
+plt.title("Comparison: LSTM vs Transformer vs Actual")
+plt.xlabel("Date")
+plt.ylabel("y1")
+plt.legend()
+plt.show()
