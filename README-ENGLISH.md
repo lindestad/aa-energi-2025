@@ -205,7 +205,7 @@ Want to experiment? Try adding additional features, tweaking hyperparameters, or
 
 ---
 
-# Large Hydropower Modeling - Revenge of the MLP!
+# 3. Large Hydropower Modeling - Revenge of the MLP!
 
 > **Goal:** Predict multiple targets (y1..y4) from 10 input variables (x1..x10).  
 > **Data:** Provided by Å Energi, with millions of rows of operational logs (we assume).
