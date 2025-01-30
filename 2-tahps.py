@@ -9,12 +9,14 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# For the AutoReg baseline
-from statsmodels.tsa.ar_model import AutoReg
+# Import the manual AR and naive approaches
+# Make sure you have the file "utils/autoregressor.py" with the code you provided:
+#   fit_ar_model, predict_ar_one_step, naive_predict
+from utils.autoregressor import fit_ar_model, predict_ar_one_step, naive_predict
 
-# ----------------------
-# 1. Load & Preprocess Data
-# ----------------------
+########################################
+# 1. Data Loading & Preprocessing
+########################################
 file_path = "data/tahps_data.txt"
 df = pd.read_csv(file_path, delimiter="\t", skiprows=1)
 df.columns = ["date", "x1", "x2", "x3", "y1"]
@@ -28,7 +30,7 @@ df["month"] = df["date"].dt.month
 
 df = df.sort_values("date").reset_index(drop=True)
 
-# --- Add y-lag features: e.g., up to 5 days of lag ---
+# --- Add y-lag features for the neural nets (e.g., up to 5 days of lag) ---
 max_lag = 5
 for lag in range(1, max_lag + 1):
     df[f"y_lag_{lag}"] = df["y1"].shift(lag)
@@ -36,17 +38,17 @@ for lag in range(1, max_lag + 1):
 # Drop the first 'max_lag' rows that have NaNs due to shifting
 df = df.dropna().reset_index(drop=True)
 
-# Now define features to include the lags
+# We'll feed these columns to the neural nets
 feature_cols = ["x1", "x2", "x3", "dayofyear", "dayofweek", "month"] + [
     f"y_lag_{i}" for i in range(1, max_lag + 1)
 ]
-target_col = "y1"  # predict today's y1
+target_col = "y1"
 
 # Build feature matrix (X) and target (y)
-X = df[feature_cols].values  # shape: (n, num_features + y_lag_features)
-y = df[[target_col]].values  # shape: (n, 1)
+X = df[feature_cols].values
+y = df[[target_col]].values
 
-# Train/test split (90% train, last 10% test)
+# Train/test split (90% train, 10% test)
 n = len(df)
 train_size = int(n * 0.9)
 X_train_raw, X_test_raw = X[:train_size], X[train_size:]
@@ -54,7 +56,7 @@ y_train_raw, y_test_raw = y[:train_size], y[train_size:]
 dates_train = df["date"][:train_size]
 dates_test = df["date"][train_size:]
 
-# For the neural nets, scale the features & target
+# For neural nets, scale the features & target
 scaler_X = MinMaxScaler()
 scaler_y = MinMaxScaler()
 
@@ -63,33 +65,33 @@ y_train_scaled = scaler_y.fit_transform(y_train_raw)
 X_test_scaled = scaler_X.transform(X_test_raw)
 y_test_scaled = scaler_y.transform(y_test_raw)
 
-# ----------------------
-# 2. Baseline: AutoReg using only y (with 5 lags)
-#
-#   Even though we've built lag columns for the NN,
-#   the classic AutoReg from statsmodels just uses y's own history.
-#   We'll keep it simple: y(t) = f( y(t-1),..., y(t-5) ).
-# ----------------------
-# Flatten y for AutoReg
-y_full_ar = df["y1"].values  # after dropping NaNs
-y_train_ar = y_full_ar[:train_size]
-y_test_ar = y_full_ar[train_size:]
+########################################
+# 2. Baseline: Our Manual AR(5) & Naive
+########################################
 
-# Fit AR(5)
+# Flatten y for the AR(5) and naive approaches (we only need 1D arrays)
+y_full = df["y1"].values
+y_train_ar = y_full[:train_size]
+y_test_ar = y_full[train_size:]
+
+# ---- (a) Manual AR(5) Walk-forward ----
 ar_lags = 5
-ar_model = AutoReg(y_train_ar, lags=ar_lags).fit()
-ar_preds = ar_model.predict(start=train_size, end=train_size + len(y_test_ar) - 1)
+beta, last_obs = fit_ar_model(y_train_ar, lags=ar_lags)
+ar_preds = predict_ar_one_step(y_test_ar, beta, last_obs, lags=ar_lags)
 
-# Evaluate AR
 ar_mae = mean_absolute_error(y_test_ar, ar_preds)
 ar_mse = mean_squared_error(y_test_ar, ar_preds)
 ar_rmse = np.sqrt(ar_mse)
 
-# ----------------------
+# ---- (b) Naive Walk-forward ----
+naive_preds = naive_predict(y_train_ar, y_test_ar)
+naive_mae = mean_absolute_error(y_test_ar, naive_preds)
+naive_mse = mean_squared_error(y_test_ar, naive_preds)
+naive_rmse = np.sqrt(naive_mse)
+
+########################################
 # 3. Prepare Sequences for LSTM/Transformer
-#    We'll still do "history_size" windowing, but
-#    each time-step's input includes the lag features as well.
-# ----------------------
+########################################
 history_size = 30
 
 
@@ -112,7 +114,9 @@ X_test_seq, y_test_seq = create_sequences(X_test_scaled, y_test_scaled, history_
 test_dates_for_plot = dates_test.iloc[history_size:].values  # offset for final plotting
 
 
-# Make Dataset & Dataloaders
+########################################
+# 4. PyTorch Dataset & DataLoaders
+########################################
 class TimeSeriesDataset(Dataset):
     def __init__(self, X, y):
         self.X = torch.tensor(X, dtype=torch.float32)
@@ -133,9 +137,9 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
-# ----------------------
-# 4. Define LSTM & Transformer
-# ----------------------
+########################################
+# 5. LSTM & Transformer Definitions
+########################################
 class LSTMModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=64, num_layers=2, dropout=0.2):
         super(LSTMModel, self).__init__()
@@ -149,9 +153,7 @@ class LSTMModel(nn.Module):
         self.fc = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
-        # x shape: (batch_size, seq_len, input_dim)
         lstm_out, (h_n, c_n) = self.lstm(x)
-        # Take last time-step
         out = lstm_out[:, -1, :]
         out = self.fc(out)
         return out
@@ -189,17 +191,17 @@ class TransformerTimeSeries(nn.Module):
         self.fc_out = nn.Linear(d_model, 1)
 
     def forward(self, x):
-        x = self.input_fc(x)  # (batch_size, seq_len, d_model)
-        x = self.pos_encoder(x)  # add positional encoding
-        x = self.transformer_encoder(x)  # pass through Transformer
-        x = x[:, -1, :]  # final time step
-        out = self.fc_out(x)  # (batch_size, 1)
+        x = self.input_fc(x)
+        x = self.pos_encoder(x)
+        x = self.transformer_encoder(x)
+        x = x[:, -1, :]
+        out = self.fc_out(x)
         return out
 
 
-# ----------------------
-# 5. Training with Early Stopping
-# ----------------------
+########################################
+# 6. Training with Early Stopping
+########################################
 def train_model(model, train_loader, val_loader, num_epochs=50, lr=1e-3, patience=5):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -248,11 +250,10 @@ def train_model(model, train_loader, val_loader, num_epochs=50, lr=1e-3, patienc
                 print(f"Early stopping triggered at epoch {epoch+1}")
                 break
 
-        # Print progress every few epochs
+        # Print every few epochs
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(
-                f"Epoch {epoch+1}/{num_epochs}, "
-                f"Train Loss: {epoch_train_loss:.6f}, Val Loss: {epoch_val_loss:.6f}"
+                f"Epoch {epoch+1}/{num_epochs}, Train Loss: {epoch_train_loss:.6f}, Val Loss: {epoch_val_loss:.6f}"
             )
 
     # Load best weights
@@ -262,19 +263,19 @@ def train_model(model, train_loader, val_loader, num_epochs=50, lr=1e-3, patienc
     return train_losses, val_losses
 
 
-# ----------------------
-# 6. Train & Evaluate LSTM
-# ----------------------
-input_dim = X_train_seq.shape[2]  # includes exogenous + y-lag features
+########################################
+# 7. Train & Evaluate LSTM
+########################################
+input_dim = X_train_seq.shape[2]  # number of input features
 hidden_dim = 128
-num_layers = 3
+num_layers = 2
 dropout = 0.2
-num_epochs = 100
+num_epochs = 50
 learning_rate = 1e-3
-patience = 15
+patience = 10
 
 lstm_model = LSTMModel(input_dim, hidden_dim, num_layers, dropout)
-train_losses_lstm, val_losses_lstm = train_model(
+_, _ = train_model(
     lstm_model,
     train_loader,
     test_loader,
@@ -304,13 +305,13 @@ lstm_mae = mean_absolute_error(lstm_targets, lstm_preds)
 lstm_mse = mean_squared_error(lstm_targets, lstm_preds)
 lstm_rmse = np.sqrt(lstm_mse)
 
-# ----------------------
-# 7. Train & Evaluate Transformer
-# ----------------------
+########################################
+# 8. Train & Evaluate Transformer
+########################################
 transformer_model = TransformerTimeSeries(
-    input_dim, d_model=256, nhead=8, num_layers=2, dropout=0.2
+    input_dim, d_model=128, nhead=4, num_layers=2, dropout=0.2
 )
-train_losses_t, val_losses_t = train_model(
+_, _ = train_model(
     transformer_model,
     train_loader,
     test_loader,
@@ -341,40 +342,42 @@ trans_mae = mean_absolute_error(trans_targets, trans_preds)
 trans_mse = mean_squared_error(trans_targets, trans_preds)
 trans_rmse = np.sqrt(trans_mse)
 
-# ----------------------
-# 8. Final Visualization & Metrics
-# ----------------------
+########################################
+# 9. Final Visualization & Metrics
+########################################
+
+# We'll offset the neural predictions by "history_size" to align with the final test portion
+# (the neural net can't predict the first 30 days of the test set).
+plot_dates = test_dates_for_plot
+
+# Slice the manual AR(5) and naive predictions so we only plot the same portion
+# i.e., the last len(plot_dates) points
+ar_len = len(ar_preds)
+plot_len = len(plot_dates)
+if ar_len > plot_len:
+    # keep only the last 'plot_len' predictions
+    ar_preds_plot = ar_preds[-plot_len:]
+    naive_preds_plot = naive_preds[-plot_len:]
+else:
+    ar_preds_plot = ar_preds
+    naive_preds_plot = naive_preds
+
 plt.figure(figsize=(12, 6))
-# For the timeline, we offset AR predictions by the same 30 days to align
-# with the neural net's test window. (Though AR was done on the full test set).
-# We'll slice AR predictions if needed:
-ar_pred_aligned = (
-    ar_preds[history_size:] if len(ar_preds) >= len(trans_preds) else ar_preds
-)
+plt.plot(plot_dates, lstm_targets, label="Actual", color="black", linewidth=2)
 
-# Plot
-plt.plot(
-    test_dates_for_plot,
-    lstm_targets,
-    label="Actual",
-    color="black",
-    linewidth=2,
-    linestyle=":",
-)
-plt.plot(
-    test_dates_for_plot,
-    ar_pred_aligned,
-    label="AutoReg(5)",
-    color="orange",
-    linestyle="--",
-    alpha=0.7,
-)
-plt.plot(test_dates_for_plot, lstm_preds, label="LSTM", color="red", linestyle="-")
-plt.plot(
-    test_dates_for_plot, trans_preds, label="Transformer", color="green", linestyle="-"
-)
+# Add AR(5)
+plt.plot(plot_dates, ar_preds_plot, label="AR(5)", color="orange", linestyle="--")
+# Add naive
+plt.plot(plot_dates, naive_preds_plot, label="Naive", color="gray", linestyle="--")
 
-plt.title("Comparison: AutoReg vs. LSTM vs. Transformer (with Y-lags) vs. Actual")
+# LSTM
+plt.plot(plot_dates, lstm_preds, label="LSTM", color="red")
+# Transformer
+plt.plot(plot_dates, trans_preds, label="Transformer", color="green")
+
+plt.title(
+    "Comparison: AR(5) & Naive vs LSTM & Transformer vs Actual (Walk-Forward AR Baseline)"
+)
 plt.xlabel("Date")
 plt.ylabel("y1")
 plt.legend()
@@ -382,10 +385,10 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# Bar chart of MAE & RMSE
-model_names = ["AutoReg(5)", "LSTM", "Transformer"]
-mae_values = [ar_mae, lstm_mae, trans_mae]
-rmse_values = [ar_rmse, lstm_rmse, trans_rmse]
+# Bar chart
+model_names = ["AR(5)", "Naive", "LSTM", "Transformer"]
+mae_values = [ar_mae, naive_mae, lstm_mae, trans_mae]
+rmse_values = [ar_rmse, naive_rmse, lstm_rmse, trans_rmse]
 
 x = np.arange(len(model_names))
 width = 0.35
@@ -421,10 +424,8 @@ autolabel(rects2)
 plt.tight_layout()
 plt.show()
 
-# Print final metrics
-print("AR coefficients:\n", ar_model.params)
-print("\n")
-print("===== Final Metrics (all test data) =====")
-print(f"AutoReg(5)    MAE: {ar_mae:.3f}, RMSE: {ar_rmse:.3f}")
-print(f"LSTM          MAE: {lstm_mae:.3f}, RMSE: {lstm_rmse:.3f}")
-print(f"Transformer   MAE: {trans_mae:.3f}, RMSE: {trans_rmse:.3f}")
+print("===== Final Metrics =====")
+print(f"AR(5)        MAE: {ar_mae:.3f},  RMSE: {ar_rmse:.3f}")
+print(f"Naive        MAE: {naive_mae:.3f}, RMSE: {naive_rmse:.3f}")
+print(f"LSTM         MAE: {lstm_mae:.3f}, RMSE: {lstm_rmse:.3f}")
+print(f"Transformer  MAE: {trans_mae:.3f}, RMSE: {trans_rmse:.3f}")
