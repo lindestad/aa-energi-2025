@@ -14,7 +14,7 @@ A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function usin
 ## Overview
 
 1. **Data**  
-   We have \((x, i)\) pairs and a target \(z = \sin(\cos(x)) + \sin(\cos(i))\).  
+   We have $(x, i)$ pairs and a target $z = \sin(\cos(x)) + \sin(\cos(i))$.  
    - Inputs are stored in `data/X_sincos.txt`
    - Targets are stored in `data/y_sincos.txt`
    - Data provided by Å Energi.

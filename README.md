@@ -15,7 +15,7 @@ En rask demonstrasjon av bruk av **PyTorch** for å tilpasse en 2D sinus-cosinus
 ## Oversikt
 
 1. **Data**  
-   Vi har \((x, i)\)-par og et mål \(z = \sin(\cos(x)) + \sin(\cos(i))\).  
+   Vi har $(x, i)$-par og et mål $z = \sin(\cos(x)) + \sin(\cos(i))$.  
    - Inndata er lagret i `data/X_sincos.txt`
    - Målverdier er lagret i `data/y_sincos.txt`
    - Data levert av Å Energi.
