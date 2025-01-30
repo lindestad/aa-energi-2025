@@ -16,6 +16,7 @@ from sklearn.metrics import (
     r2_score,
     make_scorer,
 )
+import torch
 
 import sys
 import os
@@ -49,7 +50,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 # 2. Define param distribution
 ###################################
 param_dist = {
-    "hidden_size": [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192],
+    "hidden_size": [32, 64, 128],
     "n_hidden_layers": [1, 2, 3, 4, 5],
     "dropout": [0.0, 0.2],
     "lr": [1e-2, 1e-3, 2e-3, 1e-4, 5e-4],
@@ -57,14 +58,27 @@ param_dist = {
     "batch_size": [256, 1024],
 }
 
+# param_dist = {
+#     "hidden_size": [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192],
+#     "n_hidden_layers": [1, 2, 3, 4, 5],
+#     "dropout": [0.0, 0.2],
+#     "lr": [1e-2, 1e-3, 2e-3, 1e-4, 5e-4],
+#     "max_epochs": [20, 40],
+#     "batch_size": [256, 1024],
+# }
+
+
 ###################################
 # 3. Create the regressor
 ###################################
+# Automatically select device
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print("Using device:", device)
 reg = PytorchRegressor(
     input_dim=10,  # x1..x10
     output_dim=4,  # y1..y4
-    device="cpu",  # or 'cuda' if GPU is available
     verbose=True,
+    device=device,
 )
 
 ###################################
