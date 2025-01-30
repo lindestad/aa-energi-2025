@@ -266,8 +266,8 @@ def train_model(model, train_loader, val_loader, num_epochs=50, lr=1e-3, patienc
 # 6. Train & Evaluate LSTM
 # ----------------------
 input_dim = X_train_seq.shape[2]  # includes exogenous + y-lag features
-hidden_dim = 64
-num_layers = 2
+hidden_dim = 128
+num_layers = 3
 dropout = 0.2
 num_epochs = 100
 learning_rate = 1e-3
@@ -308,7 +308,7 @@ lstm_rmse = np.sqrt(lstm_mse)
 # 7. Train & Evaluate Transformer
 # ----------------------
 transformer_model = TransformerTimeSeries(
-    input_dim, d_model=64, nhead=4, num_layers=2, dropout=0.2
+    input_dim, d_model=256, nhead=8, num_layers=2, dropout=0.2
 )
 train_losses_t, val_losses_t = train_model(
     transformer_model,
