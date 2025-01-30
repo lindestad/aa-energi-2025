@@ -265,3 +265,162 @@ plt.title("LSTM: Distribution of Residuals")
 plt.xlabel("Error (y_true - y_pred)")
 plt.ylabel("Frequency")
 plt.show()
+
+
+# ----------------------
+# Transformer for Time Series
+
+# PyTorch’s nn.Transformer module is typically used for sequence-to-sequence tasks.
+# For next-step forecasting, we can adapt it by treating the “past history_size steps”
+# as the “source sequence” and produce a single output. A typical approach includes:
+#
+# Positional Encoding: Transformers need positional info to handle sequence order.
+# We can add a standard sinusoidal positional encoding or a learnable embedding.
+#
+# Masked Attention if we were generating each step at a time. Here, for
+# a single-step forecast, we can simplify.
+# ----------------------
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model)
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe = pe.unsqueeze(0)  # shape (1, max_len, d_model)
+
+    def forward(self, x):
+        # x shape: (batch_size, seq_len, d_model)
+        seq_len = x.size(1)
+        # Add positional encoding up to the seq_len
+        x = x + self.pe[:, :seq_len, :].to(x.device)
+        return x
+
+
+# ----------------------
+# Transformer Model definition
+# ----------------------
+class TransformerTimeSeries(nn.Module):
+    def __init__(
+        self, input_dim, d_model=64, nhead=4, num_layers=2, dropout=0.2, seq_len=30
+    ):
+        super(TransformerTimeSeries, self).__init__()
+        self.seq_len = seq_len
+        self.d_model = d_model
+
+        # Step 1: Linear embedding of input_dim -> d_model
+        self.input_fc = nn.Linear(input_dim, d_model)
+
+        # Step 2: Positional encoding
+        self.pos_encoder = PositionalEncoding(d_model)
+
+        # Step 3: Transformer Encoder
+        encoder_layers = nn.TransformerEncoderLayer(
+            d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True
+        )
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layers, num_layers=num_layers
+        )
+
+        # Final prediction head
+        self.fc_out = nn.Linear(d_model, 1)
+
+    def forward(self, x):
+        """
+        x: (batch_size, seq_len, input_dim)
+        """
+        # (batch_size, seq_len, d_model)
+        x = self.input_fc(x)
+        x = self.pos_encoder(x)
+
+        # Pass through Transformer encoder
+        x = self.transformer_encoder(x)  # shape: (batch_size, seq_len, d_model)
+
+        # We want the output of the final time step
+        x = x[:, -1, :]  # (batch_size, d_model)
+
+        # Final linear
+        out = self.fc_out(x)  # (batch_size, 1)
+        return out
+
+
+# ----------------------
+# Train the Transformer
+
+# We can reuse the same train_model function since it only depends
+# on calling model(batch_X). Let’s just instantiate our transformer and train it:
+# ----------------------
+# Instantiate Transformer
+transformer_model = TransformerTimeSeries(
+    input_dim=input_dim,
+    d_model=64,
+    nhead=4,
+    num_layers=2,
+    dropout=0.2,
+    seq_len=history_size,
+)
+
+train_losses_t, val_losses_t = train_model(
+    transformer_model, train_loader, test_loader, num_epochs=20, lr=1e-3
+)
+
+plt.figure(figsize=(10, 4))
+plt.plot(train_losses_t, label="Train Loss (Transformer)")
+plt.plot(val_losses_t, label="Validation Loss (Transformer)")
+plt.title("Transformer Model Loss")
+plt.xlabel("Epoch")
+plt.ylabel("MSE")
+plt.legend()
+plt.show()
+
+# ----------------------
+# Evaluate & Visualize (Transformer)
+# ----------------------
+transformer_model.eval()
+test_preds_scaled_t = []
+test_targets_scaled_t = []
+
+with torch.no_grad():
+    for batch_X, batch_y in test_loader:
+        preds = transformer_model(batch_X).squeeze()
+        test_preds_scaled_t.append(preds.cpu().numpy())
+        test_targets_scaled_t.append(batch_y.squeeze().cpu().numpy())
+
+test_preds_scaled_t = np.concatenate(test_preds_scaled_t, axis=0)
+test_targets_scaled_t = np.concatenate(test_targets_scaled_t, axis=0)
+
+# Invert scaling
+test_preds_t = scaler_y.inverse_transform(test_preds_scaled_t.reshape(-1, 1)).flatten()
+test_targets_t = scaler_y.inverse_transform(
+    test_targets_scaled_t.reshape(-1, 1)
+).flatten()
+
+mae_t = mean_absolute_error(test_targets_t, test_preds_t)
+mse_t = mean_squared_error(test_targets_t, test_preds_t)
+rmse_t = np.sqrt(mse_t)
+
+print(f"Transformer Test MAE: {mae_t:.3f}")
+print(f"Transformer Test RMSE: {rmse_t:.3f}")
+
+plt.figure(figsize=(12, 5))
+plt.plot(test_dates_for_plot, test_targets_t, label="Actual", color="blue")
+plt.plot(test_dates_for_plot, test_preds_t, label="Transformer Predicted", color="red")
+plt.title("Transformer Predictions vs Actual")
+plt.xlabel("Date")
+plt.ylabel("y1")
+plt.legend()
+plt.show()
+
+# Residuals
+residuals_t = test_targets_t - test_preds_t
+plt.figure(figsize=(10, 4))
+plt.hist(residuals_t, bins=30, alpha=0.7, color="gray")
+plt.title("Transformer: Distribution of Residuals")
+plt.xlabel("Error (y_true - y_pred)")
+plt.ylabel("Frequency")
+plt.show()
