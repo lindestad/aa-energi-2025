@@ -182,6 +182,167 @@ Want to experiment? Try adding additional features, tweaking hyperparameters, or
 
 ---
 
+
+
+
+
+
+
+
+# Å Energi Hydropower Modeling
+
+> **Goal:** Predict multiple targets (y1..y4) from 10 input variables (x1..x10).  
+> **Data:** Provided by Å Energi, with millions of rows of operational logs (we assume).
+
+## Table of Contents
+
+1. [Overview](#overview)  
+2. [Models](#models)  
+   - [Linear Regression](#linear-regression)  
+   - [XGBoost](#xgboost)  
+   - [Multi-Layer Perceptron (MLP)](#multi-layer-perceptron-mlp)  
+3. [Results](#results)  
+4. [Future Improvements](#future-improvements)  
+5. [Repository Structure](#repository-structure)
+
+---
+
+## Overview
+
+We tried three main approaches to see which method best predicts our 4 target variables:
+
+1. A classic **Linear Regression** baseline.  
+2. A **tree-based** ensemble method: **XGBoost**.  
+3. A **neural network** approach using a multi-output **MLP** in PyTorch.
+
+All scripts produce **metrics** like RMSE (Root Mean Squared Error) and MAE (Mean Absolute Error). We used train/test splits of 80/20 and tested each method’s performance.
+
+---
+
+## Models
+
+### Linear Regression
+
+We used a simple **multi-output linear model**: for each target (y1..y4), it tries to fit a linear function of x1..x10. Unsurprisingly, linear regression did okay, but it didn’t fully capture complex relationships. Our best MSE hovered around 0.06–0.07 for most targets, translating to RMSE of about 0.24–0.28. Great for interpretability, but maybe not for minimal error.
+
+**Key Script**: [`3-vannkraft-linreg.py`](3-vannkraft-linreg.py)
+
+### XGBoost
+
+**XGBoost** (eXtreme Gradient Boosting) is famously strong on tabular data—often beating neural nets. We used **RandomizedSearchCV** to tune hyperparams like `max_depth`, `learning_rate`, `subsample`, etc., for each target.
+
+**Highlights**:
+- Achieved RMSE around **0.05–0.07** for y1..y4.
+- Blazing fast on CPU with `tree_method='hist'`.
+- Typically outperforms linear models on non-linear data.
+
+**Key Script**: [`3-vannkraft-xgboost.py`](3-vannkraft-xgboost.py)
+
+### Multi-Layer Perceptron (MLP)
+
+“Neural networks are overrated on structured data!” Some folks say that. However, we wanted to see if a well-tuned MLP could match or surpass XGBoost. We built a **multi-output** MLP in PyTorch with `output_dim=4` so it jointly predicts y1..y4.
+
+After a thorough hyperparameter search (despite some docstring drama with skorch in Python 3.13), we found a sweet spot with:
+
+- **2** hidden layers  
+- **512** neurons in each layer  
+- **0.01** dropout  
+- A learning rate of **0.001**  
+- Trained for **134** epochs  
+
+**Key Script**: [`3-vannkraft-mlp.py`](3-vannkraft-mlp.py)
+
+---
+
+## Results
+
+### Linear Regression vs. XGBoost vs. MLP
+
+| Method      | y1 RMSE  | y2 RMSE  | y3 RMSE  | y4 RMSE  | Comments                              |
+|-------------|----------|----------|----------|----------|----------------------------------------|
+| **LinearReg** | ~0.25  | ~0.24   | ~0.28   | ~0.27   | Decent baseline, but not top dog       |
+| **XGBoost**   | ~0.07  | ~0.06   | ~0.06   | ~0.05   | Strong overall; easy to tune           |
+| **MLP**       | ~0.06  | ~0.045  | ~0.043  | ~0.033  | Actually beat XGBoost in these tests!  |
+
+> **Note**: The table above is just a quick summary. We got these from actual final test metrics (see below).
+
+**Graphs**
+![](assets/img/3-)
+
+**Detailed Metrics**:
+
+- **XGBoost**  
+  - y1: MSE=0.005233 (RMSE=0.0723), MAE=0.0364  
+  - y2: MSE=0.003901 (RMSE=0.0625), MAE=0.0297  
+  - y3: MSE=0.003477 (RMSE=0.0590), MAE=0.0202  
+  - y4: MSE=0.002654 (RMSE=0.0515), MAE=0.0170  
+
+- **MLP**  
+  - y1: MSE=0.003587 (RMSE=0.0599), MAE=0.0231  
+  - y2: MSE=0.002085 (RMSE=0.0457), MAE=0.0213  
+  - y3: MSE=0.001892 (RMSE=0.0435), MAE=0.0129  
+  - y4: MSE=0.001143 (RMSE=0.0338), MAE=0.0128  
+
+- **Linear Regression**  
+  - y1: MSE=0.064769 (RMSE=0.2545), MAE=0.2177  
+  - y2: MSE=0.057551 (RMSE=0.2399), MAE=0.2000  
+  - y3: MSE=0.075656 (RMSE=0.2751), MAE=0.2381  
+  - y4: MSE=0.071608 (RMSE=0.2676), MAE=0.2291  
+
+**Takeaway**: The MLP slightly outperforms XGBoost in these final runs—somewhat unusual for purely tabular data, but shows that with enough hyperparameter tuning and possibly the large dataset, the MLP can shine.
+
+---
+
+## Future Improvements
+
+We could push these models even further by:
+
+1. **Using PCA**  
+   - Our correlation analysis showed some redundant features. Reducing dimensionality to ~4–6 principal components might streamline training and help some models generalize. We’d compare performance with vs. without PCA.
+2. **Exploring Additional Models**  
+   - Perhaps **LightGBM** or **CatBoost** for better GPU usage or built-in handling of categorical features (if any).
+3. **Domain Knowledge**  
+   - If we knew more about how hydropower variables relate physically, we could engineer features or apply constraints to improve performance beyond purely data-driven approaches.
+4. **Deeper Neural Nets or Transformers**  
+   - Not always beneficial for tabular data, but a specialized approach (like TabNet or a custom Transformer) might discover patterns we’re missing.
+5. **Extended Hyperparameter Search**  
+   - With 25+ million rows, we have a huge dataset. We could harness HPC or GPU resources for a more exhaustive search.
+
+---
+
+## Repository Structure
+
+```
+.
+├── hyperparam_tuning/
+│   ├── hyper_xgboost.py        # Code for searching best XGBoost params
+│   ├── hyper_mlp.py            # PyTorch MLP hyperparam search (custom wrapper or skorch)
+│   └── ... other experiments
+├── 3-vannkraft-linreg.py       # Final multi-output linear regression approach
+├── 3-vannkraft-xgboost.py      # Final XGBoost approach + plots
+├── 3-vannkraft-mlp.py          # Final MLP approach + plots
+├── data/
+│   └── vannkraft_data.txt      # The dataset (tab-separated)
+└── README.md                   # This file (with results + analysis)
+```
+
+We hope this project demonstrates both our comfort with **tabular data modeling** and our willingness to experiment across methods. We had fun chasing those improved RMSE decimals (who knew 0.05 → 0.033 could feel so satisfying?). 
+
+---
+
+**Thanks for reading,** and we hope you enjoy browsing the code and results. If you have any questions—or want to recruit us—please don’t hesitate to reach out! 
+
+
+---
+
+
+
+
+
+
+
+
+
 💬 **Questions or feedback?**  
 Feel free to reach out or open an issue—always happy to chat about time-series forecasting! 🚀  
 
