@@ -1,6 +1,14 @@
-# aa-energi-2025
+# Å Energi - Exploration of Datasets 2025
 
-# 1. MLP Sine-Cosine Regression
+---
+
+## Introduction  
+
+This project explores three distinct machine learning challenges, ranging from fundamental function approximation to complex real-world forecasting. We begin with a demonstration of PyTorch's capabilities in fitting a sine-cosine function, followed by an investigation into time-series forecasting on a small dataset, where we compare deep learning models to classical autoregressors. Finally, we tackle a large-scale hydropower dataset, evaluating whether a carefully tuned neural network can outperform traditional gradient-boosting models in a multi-output regression task.
+
+---
+
+# 1. MLP with Sine-Cosine Regression
 
 A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function using two different Multi-Layer Perceptron (MLP) architectures:
 
@@ -9,13 +17,28 @@ A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function usin
 
 ![Sine Cos Overfitting Demo](assets/img/1-sincos.png)
 
-# 2. Time-Series Forecasting with Small Data - Battling the Autoregressor
+# 2. Time-Series Forecasting for Small Data - Battling the Autoregressor
 
 **_We bravely attempted to beat the classical autoregressors using modern deep learning on a very small dataset—and it was quite a challenge!_**
 
 ![Prediction timline](assets/img/2_predicted.png)
 
-----
+Below is a **short introduction** for your project, followed by a **teaser for part 3** in the same style as your existing sections, and finally a **small index** referencing each section. Feel free to tweak the wording and headings as needed.
+
+## 3. Large Hydropower Modeling - Revenge of the MLP!
+
+**_After exploring time-series forecasting on a small dataset, we turned our attention to a significantly larger challenge—a hydropower dataset from Å Energi, containing millions of rows and multiple target variables. Our goal was to determine whether a carefully tuned neural network could outperform traditional gradient-boosting models in a complex multi-output regression task. Along the way, we addressed issues of dimensionality, optimized hyperparameters, and compared model performance to find the most effective approach._**
+
+![Hydropower plot](assets/img/3-mlp.png)
+
+---
+
+## Quick Index
+
+- [1. MLP Sine-Cosine Regression](#1-mlp-sine-cosine-regression)  
+- [2. Time-Series Forecasting with Small Data - Battling the Autoregressor](#2-time-series-forecasting-with-small-data---battling-the-autoregressor)  
+- [3. Large Hydropower Modeling - Revenge of the MLP!](#3-large-hydropower-modeling---revenge-of-the-mlp)  
+
 
 # 1. MLP Sine-Cosine Regression
 
@@ -182,14 +205,7 @@ Want to experiment? Try adding additional features, tweaking hyperparameters, or
 
 ---
 
-
-
-
-
-
-
-
-# Å Energi Hydropower Modeling
+# Large Hydropower Modeling - Revenge of the MLP!
 
 > **Goal:** Predict multiple targets (y1..y4) from 10 input variables (x1..x10).  
 > **Data:** Provided by Å Energi, with millions of rows of operational logs (we assume).
@@ -267,27 +283,34 @@ After a thorough hyperparameter search (despite some docstring drama with skorch
 > **Note**: The table above is just a quick summary. We got these from actual final test metrics (see below).
 
 **Graphs**
-![](assets/img/3-)
+![Linear regression](assets/img/3-linreg.png)
+![XGBoost](assets/img/3-xgboost.png)
+![Multilayer perceptron](assets/img/3-mlp.png)
 
 **Detailed Metrics**:
 
 - **XGBoost**  
+  ![Linear regression](assets/img/3-linreg-mse.png)
   - y1: MSE=0.005233 (RMSE=0.0723), MAE=0.0364  
   - y2: MSE=0.003901 (RMSE=0.0625), MAE=0.0297  
   - y3: MSE=0.003477 (RMSE=0.0590), MAE=0.0202  
   - y4: MSE=0.002654 (RMSE=0.0515), MAE=0.0170  
 
-- **MLP**  
+- **MLP** 
+  ![XGBoost](assets/img/3-xgboost-mse.png) 
   - y1: MSE=0.003587 (RMSE=0.0599), MAE=0.0231  
   - y2: MSE=0.002085 (RMSE=0.0457), MAE=0.0213  
   - y3: MSE=0.001892 (RMSE=0.0435), MAE=0.0129  
   - y4: MSE=0.001143 (RMSE=0.0338), MAE=0.0128  
 
 - **Linear Regression**  
+  ![Multilayer perceptron](assets/img/3-mlp-mse.png)
   - y1: MSE=0.064769 (RMSE=0.2545), MAE=0.2177  
   - y2: MSE=0.057551 (RMSE=0.2399), MAE=0.2000  
   - y3: MSE=0.075656 (RMSE=0.2751), MAE=0.2381  
   - y4: MSE=0.071608 (RMSE=0.2676), MAE=0.2291  
+
+
 
 **Takeaway**: The MLP slightly outperforms XGBoost in these final runs—somewhat unusual for purely tabular data, but shows that with enough hyperparameter tuning and possibly the large dataset, the MLP can shine.
 
@@ -332,19 +355,9 @@ We hope this project demonstrates both our comfort with **tabular data modeling*
 
 **Thanks for reading,** and we hope you enjoy browsing the code and results. If you have any questions—or want to recruit us—please don’t hesitate to reach out! 
 
-
 ---
-
-
-
-
-
-
-
-
 
 💬 **Questions or feedback?**  
-Feel free to reach out or open an issue—always happy to chat about time-series forecasting! 🚀  
+Feel free to reach out or open an issue—always happy to chat about forecasting!
 
 ---
-
