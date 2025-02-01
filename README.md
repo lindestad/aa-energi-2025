@@ -4,7 +4,7 @@
 
 ## Introduksjon  
 
-Dette prosjektet utforsker tre forskjellige maskinlæringsutfordringer, som spenner fra grunnleggende funksjonsapproksimasjon til kompleks sanntidsprognosering. Vi starter med en demonstrasjon av PyTorchs evne til å tilpasse en sinus-kosinus-funksjon, etterfulgt av en analyse av tidsserieprognosering på et lite datasett, der vi sammenligner dype nevrale nettverk med klassiske autoregressive modeller. Til slutt håndterer vi et storskala vannkraftdatasett og evaluerer om et nøye justert nevralt nettverk kan overgå tradisjonelle gradient-boosting-modeller i en multi-output regresjonsoppgave.
+Dette prosjektet utforsker tre forskjellige maskinlæringsutfordringer, som spenner fra grunnleggende funksjonsapproksimasjon til kompleks sanntidsprognosering. Vi starter med en demonstrasjon av en MLP med PyTorchs og predikerer sinus-kosinus-funksjon, etterfulgt av en analyse av tidsserieprognosering på et lite datasett, der vi sammenligner dype nevrale nettverk med klassiske autoregressive modeller. Til slutt håndterer vi et storskala vannkraftdatasett og evaluerer om et nøye justert nevralt nettverk kan overgå tradisjonelle gradient-boosting-modeller i en multi-output regresjonsoppgave.
 
 ----
 
