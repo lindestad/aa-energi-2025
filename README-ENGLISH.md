@@ -8,7 +8,7 @@ This project explores three distinct machine learning challenges, ranging from f
 
 ---
 
-# 1. MLP with Sine-Cosine Regression
+## 1. MLP with Sine-Cosine Regression
 
 A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function using two different Multi-Layer Perceptron (MLP) architectures:
 
@@ -38,7 +38,6 @@ Below is a **short introduction** for your project, followed by a **teaser for p
 - [1. MLP Sine-Cosine Regression](#1-mlp-sine-cosine-regression)  
 - [2. Time-Series Forecasting with Small Data - Battling the Autoregressor](#2-time-series-forecasting-with-small-data---battling-the-autoregressor)  
 - [3. Large Hydropower Modeling - Revenge of the MLP!](#3-large-hydropower-modeling---revenge-of-the-mlp)  
-
 
 # 1. MLP Sine-Cosine Regression
 
@@ -77,14 +76,18 @@ A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function usin
 
 ## Quickstart
 
-1. **Install Dependencies**  
+1. **Install Dependencies**
+
    ```bash
    pip install torch matplotlib numpy
    ```
-2. **Run**  
+
+2. **Run**
+
    ```bash
    python 1-sincos.py
    ```
+
    - Adjust the script’s hyperparameters (epochs, learning rate) if desired.
 
 3. **Plot**  
@@ -96,44 +99,43 @@ A quick demonstration of using **PyTorch** to fit a 2D sine-cosine function usin
 - **Visualization**: 3D surface plots help us visually assess how well the model captures the true underlying function.  
 - **PyTorch**: Shows how easy it is to build and train MLPs on custom data with just a few lines of Python code.
 
-----
+---
 
+# **2. Time-Series Forecasting with Small Data - Battling the Autoregressor**
 
-# **2. Time-Series Forecasting with Small Data - Battling the Autoregressor**  
-
-**_We set out to challenge classical autoregressors using deep learning on a tiny dataset—and let's just say, the results were humbling._**  
+**_We set out to challenge classical autoregressors using deep learning on a tiny dataset—and the results were humbling._**  
 
 ![Prediction timeline](assets/img/2_predicted.png)  
 
 ## **Overview**  
 
-This project explores different approaches to forecasting a daily time series with only **~4000 observations** (after accounting for lag features). Our goal was to see if modern deep learning models—LSTMs and Transformers—could outperform classical statistical methods in a low-data setting.  
+This project explores various approaches to forecasting a daily time series with only **~4000 observations** (after accounting for lag features). Our goal was to determine whether modern deep learning models—LSTMs and Transformers—could outperform classical statistical methods in a low-data setting.  
 
-We tested four models:  
+We evaluated four models:  
 
-1. **Naive AR**: The simplest baseline—just assume today's value will be the same as yesterday’s.  
+1. **Naive AR**: The simplest baseline—assuming today's value will be the same as yesterday’s.  
 2. **AR(5)**: A linear autoregressive model using the past five days to predict the next day.  
 3. **LSTM**: A recurrent neural network trained on sequences of 30 days.  
 4. **Transformer**: A self-attention model, also using a 30-day window.  
 
 ### **Did Deep Learning Win?**  
 
-Not this time. With only a few thousand data points and just three exogenous variables (`x1, x2, x3`), the neural networks struggled to extract meaningful patterns. The AR models, especially AR(5), performed significantly better because:  
+Not this time. With only a few thousand data points and just three exogenous variables (`x1, x2, x3`), the neural networks struggled to extract meaningful patterns. The AR models, particularly AR(5), performed significantly better due to the following reasons:  
 
 - The dataset is **very small** (~4000 rows), limiting the learning capacity of deep models.  
-- The exogenous features have **weak explanatory power**, meaning they don't contribute much to the forecast.  
+- The exogenous features have **weak explanatory power**, meaning they contribute little to the forecast.  
 - The time series itself is **highly autoregressive**, meaning past values alone provide a strong predictive signal—something the simpler AR models handle with ease.  
 
 ## **Final Metrics**  
 
 | Model        | MAE  | MSE  |  
-|-------------|------|------|  
+|--------------|------|------|  
 | **Naive AR**  | **2.626**  | **19.377**  |  
 | **AR(5)**     | **2.466**  | **17.183**  |  
 | LSTM         | 4.930  | 59.427  |  
 | Transformer  | 5.853  | 70.126  |  
 
-Both the LSTM and Transformer were convincingly outperformed by the naive and AR(5) models. The deep learning models had nearly **double the MAE** and **three to four times the MSE**. A clear win for the classical approach in this scenario.  
+Both the LSTM and Transformer were convincingly outperformed by the naive and AR(5) models. The deep learning models exhibited nearly **double the MAE** and **three to four times the MSE**. A clear victory for the classical approach in this scenario.  
 
 ---
 
@@ -141,37 +143,39 @@ Both the LSTM and Transformer were convincingly outperformed by the naive and AR
 
 ### **Prediction Timeline**  
 
-This plot compares actual vs. predicted values over time. The closer a model's predictions track the real values, the better it performs.  
+This plot compares actual vs. predicted values over time. The closer a model's predictions align with the real values, the better its performance.  
 
-📌 **What to look for:**  
-- Which models stay closest to the actual values - Here the autoregressors are just doing a better job.
-- Do any models consistently lag behind or overshoot the target? There is no consistent lag, indicating everything is set up correctly and hyperparameters are reasonable.
-- How much noise do the LSTM and Transformer introduce compared to AR(5)? The answer is that there is significant noise and random spikes - The data set is too small for the neural nets to be able to shine! 
+**What to look for:**  
+
+- Which models stay closest to the actual values? Here, the autoregressors clearly outperform the others.  
+- Do any models consistently lag behind or overshoot the target? There is no consistent lag, indicating that the setup and hyperparameters are reasonable.  
+- How much noise do the LSTM and Transformer introduce compared to AR(5)? The answer is significant noise and random spikes—the dataset is too small for the neural networks to excel.  
 
 ![Prediction timeline](assets/img/2_predicted.png)  
 
 ### **Absolute Error Over Time**  
 
-This plot shows how each model’s absolute error evolves over time. It helps identify periods where models struggle the most.  
+This plot illustrates how each model’s absolute error evolves over time, helping to identify periods where models struggle the most.  
 
-📌 **What to look for:**  
-- Are there specific time periods where errors spike? The large spikes coincide with large movements in $y$, and because the data set does not contain enough explanatory power, the LSTMS and transformers make large errors.
-- Does one model consistently make larger errors than the others?
+**What to look for:**  
+
+- Are there specific time periods where errors spike? The large spikes coincide with significant movements in $y$, and due to the dataset's limited explanatory power, the LSTM and Transformer make substantial errors.  
+- Does one model consistently make larger errors than the others?  
 - Do the deep learning models exhibit unstable or erratic behavior?  
 
 ![Error timeline](assets/img/2_error_timeline.png)  
 
 ### **MAE & MSE Comparison**  
 
-These bar charts provide a direct numerical comparison of how well each model performed.  
+These bar charts provide a direct numerical comparison of each model's performance.  
 
-- **MAE (Mean Absolute Error)** tells us the average size of errors in an intuitive way.  
+- **MAE (Mean Absolute Error)** measures the average size of errors in an intuitive way.  
 - **MSE (Mean Squared Error)** emphasizes larger errors, making it more sensitive to extreme mistakes.  
 
-📌 **What to look for:**  
-- The AR(5) model achieves the lowest MAE and MSE—winning this challenge.  
-- The LSTM and Transformer have significantly higher errors, struggling with the limited data.  
-- The naive model performs surprisingly well, showing the strong autoregressive nature of the data.  
+**What to look for:**  
+- The AR(5) model achieves the lowest MAE and MSE, emerging as the clear winner.  
+- The LSTM and Transformer exhibit significantly higher errors, struggling with the limited data.  
+- The naive model performs surprisingly well, underscoring the strong autoregressive nature of the data.  
 
 **MAE Comparison:**  
 ![MAE](assets/img/2-MAE.png)  
@@ -184,24 +188,26 @@ These bar charts provide a direct numerical comparison of how well each model pe
 ## **How to Run the Code**  
 
 1. Install dependencies:  
+
    ```bash
    pip install numpy pandas matplotlib torch scikit-learn
    ```
+
 2. Run the main script:  
+
    ```bash
    python 2-tahps.py
    ```
+
 3. Check the console output and generated plots.  
 
 ---
 
 ## **Conclusion**  
 
-Despite our best efforts, **deep learning didn’t win this battle**—but that’s not surprising. AR(5) and even the naive model performed well because past values alone contained enough predictive power.  
+Despite our best efforts, **deep learning didn’t win this battle**—but that’s not surprising. AR(5) and even the naive model performed well because past values alone contained sufficient predictive power.  
 
 However, in a scenario with **more data** and **stronger exogenous features**, the LSTM and Transformer could shine. For now, this project highlights an important lesson in time-series forecasting: **sometimes, simpler is better.**  
-
-Want to experiment? Try adding additional features, tweaking hyperparameters, or using different architectures to see if you can tip the scales in favor of deep learning!  
 
 ---
 
@@ -248,6 +254,7 @@ We used a simple **multi-output linear model**: for each target (y1..y4), it tri
 **XGBoost** (eXtreme Gradient Boosting) is famously strong on tabular data—often beating neural nets. We used **RandomizedSearchCV** to tune hyperparams like `max_depth`, `learning_rate`, `subsample`, etc., for each target.
 
 **Highlights**:
+
 - Achieved RMSE around **0.05–0.07** for y1..y4.
 - Blazing fast on CPU with `tree_method='hist'`.
 - Typically outperforms linear models on non-linear data.
@@ -296,8 +303,8 @@ After a thorough hyperparameter search (despite some docstring drama with skorch
   - y3: MSE=0.003477 (RMSE=0.0590), MAE=0.0202  
   - y4: MSE=0.002654 (RMSE=0.0515), MAE=0.0170  
 
-- **MLP** 
-  ![XGBoost](assets/img/3-xgboost-mse.png) 
+- **MLP**
+  ![XGBoost](assets/img/3-xgboost-mse.png)
   - y1: MSE=0.003587 (RMSE=0.0599), MAE=0.0231  
   - y2: MSE=0.002085 (RMSE=0.0457), MAE=0.0213  
   - y3: MSE=0.001892 (RMSE=0.0435), MAE=0.0129  
@@ -309,8 +316,6 @@ After a thorough hyperparameter search (despite some docstring drama with skorch
   - y2: MSE=0.057551 (RMSE=0.2399), MAE=0.2000  
   - y3: MSE=0.075656 (RMSE=0.2751), MAE=0.2381  
   - y4: MSE=0.071608 (RMSE=0.2676), MAE=0.2291  
-
-
 
 **Takeaway**: The MLP slightly outperforms XGBoost in these final runs—somewhat unusual for purely tabular data, but shows that with enough hyperparameter tuning and possibly the large dataset, the MLP can shine.
 
@@ -335,7 +340,7 @@ We could push these models even further by:
 
 ## Repository Structure
 
-```
+```text
 .
 ├── hyperparam_tuning/
 │   ├── hyper_xgboost.py        # Code for searching best XGBoost params
@@ -349,11 +354,11 @@ We could push these models even further by:
 └── README.md                   # This file (with results + analysis)
 ```
 
-We hope this project demonstrates both our comfort with **tabular data modeling** and our willingness to experiment across methods. We had fun chasing those improved RMSE decimals (who knew 0.05 → 0.033 could feel so satisfying?). 
+We hope this project demonstrates both our comfort with **tabular data modeling** and our willingness to experiment across methods. We had fun chasing those improved RMSE decimals (who knew 0.05 → 0.033 could feel so satisfying?).
 
 ---
 
-**Thanks for reading,** and we hope you enjoy browsing the code and results. If you have any questions—or want to recruit us—please don’t hesitate to reach out! 
+**Thanks for reading,** and we hope you enjoy browsing the code and results. If you have any questions—or want to recruit us—please don’t hesitate to reach out!
 
 ---
 

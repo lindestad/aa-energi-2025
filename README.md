@@ -100,87 +100,87 @@ En rask demonstrasjon av bruk av **PyTorch** for å tilpasse en 2D sinus-cosinus
 
 # **2. Tidsserieprognoser med små datasett – Krig mot autoregressoren**  
 
-**_Vi forsøker å utfordre klassiske autoregressive modeller ved hjelp av dyp læring på et lite datasett—og det var en tung kamp._**  
+**_Vi satte oss fore å utfordre de klassiske autoregressorene med dyp læring på et pyttelitet datasett – og resultatene var ydmykende._**
 
-![Prediksjonstidslinje](assets/img/2_predicted.png)  
+![Prediction timeline](assets/img/2_predicted.png)
 
-## **Oversikt**  
+## **Oversikt**
 
-Dette prosjektet utforsker forskjellige tilnærminger til å forutsi en daglig tidsserie med kun **~4000 observasjoner** (etter å ha tatt hensyn til lag-funksjoner). Målet var å undersøke om moderne dyp læring—LSTMer og Transformere—kunne overgå klassiske statistiske metoder i en situasjon med lite data.  
+Dette prosjektet utforsker ulike tilnærminger for å prognostisere en daglig tidsserie med bare **~4000 observasjoner** (etter at forsinkelsesvariablene er tatt med). Målet vårt var å avgjøre om moderne dyp læringsmodeller – LSTM-er og Transformer-er – kunne overgå klassiske statistiske metoder i et miljø med lite data.
 
-Vi testet fire modeller:  
+Vi evaluerte fire modeller:
 
-1. **Naiv AR**: Den enkleste baselinen—antar at dagens verdi vil være den samme som i går.  
-2. **AR(5)**: En lineær autoregressiv modell som bruker de siste fem dagene for å forutsi neste dag.  
-3. **LSTM**: Et rekurrent nevralt nettverk trent på sekvenser av 30 dager.  
-4. **Transformer**: En selvoppmerksomhetsmodell som også bruker et 30-dagers vindu.  
+1. **Naiv AR**: Den enkleste basislinjen – antakelsen om at dagens verdi vil være den samme som gårsdagens.
+2. **AR(5)**: En lineær autoregressiv modell som bruker de fem foregående dagene for å forutsi neste dag.
+3. **LSTM**: Et rekurrent nevralt nettverk trent på sekvenser av 30 dager.
+4. **Transformer**: En selvoppmerksomhetsmodell, som også benytter et 30-dagers vindu.
 
-### **Vant dyp læring?**  
+### **Vant dyp læring?**
 
-Ikke denne gangen. Med bare noen få tusen datapunkter og kun tre eksogene variabler (`x1, x2, x3`), slet de nevrale nettverkene med å finne meningsfulle mønstre. De autoregressive modellene, spesielt AR(5), presterte betydelig bedre fordi:  
+Ikke denne gangen. Med bare noen få tusen datapunkter og kun tre eksogene variabler (`x1, x2, x3`), slet de nevrale nettverkene med å trekke ut meningsfulle mønstre. AR-modellene, spesielt AR(5), presterte betydelig bedre av følgende grunner:
 
-- Datasettet er **svært lite** (~4000 rader), noe som begrenser læringskapasiteten til dype modeller.  
-- De eksogene variablene har **svak forklaringskraft**, noe som betyr at de ikke bidrar mye til prognosen.  
-- Tidsserien i seg selv er **sterkt autoregressiv**, noe som betyr at tidligere verdier alene gir et sterkt prediktivt signal—noe de enklere AR-modellene håndterer godt.  
+- Datasettet er **veldig lite** (~4000 rader), noe som begrenser læringsevnen til de dype modellene.
+- De eksogene funksjonene har **svak forklaringskraft**, noe som betyr at de bidrar lite til prognosen.
+- Selve tidsserien er **svært autoregressiv**, noe som betyr at kun tidligere verdier gir et sterkt prediktivt signal – noe de enklere AR-modellene håndterer med letthet.
 
-## **Endelige resultater**  
+## **Endelige metrikker**
 
-| Modell       | MAE  | MSE  |  
-|-------------|------|------|  
-| **Naiv AR**  | **2.626**  | **19.377**  |  
-| **AR(5)**     | **2.466**  | **17.183**  |  
-| LSTM         | 4.930  | 59.427  |  
-| Transformer  | 5.853  | 70.126  |  
+| Model        | MAE  | MSE  |
+|--------------|------|------|
+| **Naiv AR**  | **2.626**  | **19.377**  |
+| **AR(5)**     | **2.466**  | **17.183**  |
+| LSTM         | 4.930  | 59.427  |
+| Transformer  | 5.853  | 70.126  |
 
-Både LSTM og Transformer ble klart slått av de naive og AR(5)-modellene. De dype læringsmodellene hadde nesten **dobbelt så høy MAE** og **tre til fire ganger høyere MSE**. En klar seier for den klassiske tilnærmingen i dette tilfellet.  
-
----
-
-## **Viktige grafer**  
-
-### **Prediksjonstidslinje**  
-
-Denne grafen sammenligner faktiske og predikerte verdier over tid. Jo nærmere en modells prediksjoner følger de virkelige verdiene, desto bedre presterer den.  
-
-📌 **Hva du bør se etter:**  
-- Hvilke modeller ligger nærmest de faktiske verdiene? Her gjør de autoregressive modellene en langt bedre jobb.  
-- Henger noen modeller konsekvent etter eller overpredikerer målet? Det er ingen systematisk forsinkelse, noe som indikerer at alt er satt opp riktig og at hyperparametrene er rimelige.  
-- Hvor mye støy introduserer LSTM og Transformer sammenlignet med AR(5)? Svaret er betydelig støy og tilfeldige topper—datasettet er for lite til at nevrale nettverk kan skinne!  
-
-![Prediksjonstidslinje](assets/img/2_predicted.png)  
-
-### **Absolutt feil over tid**  
-
-Denne grafen viser hvordan hver modells absolutte feil utvikler seg over tid. Den hjelper med å identifisere perioder hvor modellene sliter mest.  
-
-📌 **Hva du bør se etter:**  
-- Er det spesifikke tidsperioder hvor feilene øker kraftig? De største toppene sammenfaller med store bevegelser i $y$, og fordi datasettet ikke inneholder nok forklaringskraft, gjør LSTMer og Transformere store feil.  
-- Gjør én modell konsekvent større feil enn de andre?  
-- Viser dype læringsmodeller ustabil eller uforutsigbar atferd?  
-
-![Feiltidslinje](assets/img/2_error_timeline.png)  
-
-### **MAE- og MSE-sammenligning**  
-
-Disse søylediagrammene gir en direkte numerisk sammenligning av hvor godt hver modell presterte.  
-
-- **MAE (Mean Absolute Error)** viser gjennomsnittsstørrelsen på feilene på en intuitiv måte.  
-- **MSE (Mean Squared Error)** gir større vekt til store feil, noe som gjør den mer følsom for ekstreme avvik.  
-
-📌 **Hva du bør se etter:**  
-- AR(5)-modellen oppnår lavest MAE og MSE—vinneren av denne utfordringen.  
-- LSTM og Transformer har betydelig høyere feil, noe som viser at de sliter med det begrensede datasettet.  
-- Den naive modellen presterer overraskende godt, noe som viser hvor sterkt autoregressiv tidsserien er.  
-
-**MAE-sammenligning:**  
-![MAE](assets/img/2-MAE.png)  
-
-**MSE-sammenligning:**  
-![MSE](assets/img/2-MSE.png)  
+Både LSTM og Transformer ble overbevisende overgått av den naive og AR(5)-modellene. De dype læringsmodellene viste nesten **dobbel MAE** og **tre til fire ganger MSE**. En klar seier for den klassiske tilnærmingen i dette scenarioet.
 
 ---
 
-## **Hvordan kjøre koden**  
+## **Nøkkelplott**
+
+### **Prediksjonstidslinje**
+
+Dette diagrammet sammenligner faktiske vs. predikerte verdier over tid. Jo nærmere en modells prediksjoner ligger de faktiske verdiene, desto bedre er ytelsen.
+
+**Hva du bør se etter:**
+- Hvilke modeller holder seg nærmest de faktiske verdiene? Her overgår autoregressorene klart de andre.
+- Er det noen modeller som konsekvent ligger etter eller overskrider målet? Det er ingen konsekvent etterslep, noe som indikerer at oppsettet og hyperparametrene er rimelige.
+- Hvor mye støy introduserer LSTM og Transformer sammenlignet med AR(5)? Svaret er betydelig støy og tilfeldige topper – datasettet er for lite for at de nevrale nettverkene skal kunne utmerke seg.
+
+![Prediction timeline](assets/img/2_predicted.png)
+
+### **Absolutt feil over tid**
+
+Dette diagrammet illustrerer hvordan den absolutte feilen for hver modell utvikler seg over tid, og hjelper med å identifisere perioder hvor modellene sliter mest.
+
+**Hva du bør se etter:**
+- Er det spesifikke tidsperioder hvor feilene øker kraftig? De store toppene sammenfaller med betydelige bevegelser i $y$, og på grunn av datasettets begrensede forklaringskraft gjør LSTM og Transformer betydelige feil.
+- Er det en modell som konsekvent gjør større feil enn de andre?
+- Utviser de dype læringsmodellene ustabil eller uforutsigbar oppførsel?
+
+![Error timeline](assets/img/2_error_timeline.png)
+
+### **Sammenligning av MAE og MSE**
+
+Disse stolpediagrammene gir en direkte numerisk sammenligning av hver modells ytelse.
+
+- **MAE (Mean Absolute Error)** måler den gjennomsnittlige størrelsen på feilene på en intuitiv måte.
+- **MSE (Mean Squared Error)** legger vekt på større feil, noe som gjør den mer følsom for ekstreme feil.
+
+**Hva du bør se etter:**
+- AR(5)-modellen oppnår den laveste MAE og MSE, og fremstår som den klare vinneren.
+- LSTM og Transformer viser betydelig høyere feil, og sliter med den begrensede datamengden.
+- Den naive modellen presterer overraskende bra, noe som understreker den sterke autoregressive naturen til dataene.
+
+**Sammenligning av MAE:**  
+![MAE](assets/img/2-MAE.png)
+
+**Sammenligning av MSE:**  
+![MSE](assets/img/2-MSE.png)
+
+---
+
+## **Hvordan kjøre koden**
 
 1. Installer avhengigheter:  
    ```bash
@@ -190,17 +190,15 @@ Disse søylediagrammene gir en direkte numerisk sammenligning av hvor godt hver 
    ```bash
    python 2-tahps.py
    ```
-3. Sjekk konsollutdata og genererte grafer.  
+3. Sjekk konsollutskriften og de genererte diagrammene.
 
 ---
 
-## **Konklusjon**  
+## **Konklusjon**
 
-Til tross for våre beste forsøk, **vant ikke dyp læring denne kampen**—men det er ikke overraskende. AR(5) og til og med den naive modellen presterte godt fordi tidligere verdier alene inneholdt nok prediktiv informasjon.  
+Til tross for våre beste anstrengelser, **vant ikke dyp læring denne kampen** – men det er ikke overraskende. AR(5) og til og med den naive modellen presterte bra fordi tidligere verdier alene inneholdt tilstrekkelig prediktiv kraft.
 
-Imidlertid, i et scenario med **mer data** og **sterkere eksogene variabler**, kunne LSTM og Transformer ha gjort det bedre. Foreløpig fremhever dette prosjektet en viktig lærdom innen tidsserieprognoser: **noen ganger er det enkleste også det beste.**  
-
-Vil du eksperimentere? Prøv å legge til flere funksjoner, justere hyperparametere eller bruke forskjellige arkitekturer for å se om du kan vippe vektskålen i favør av dyp læring!  
+Men i et scenario med **mer data** og **sterkere eksogene funksjoner**, kunne LSTM og Transformer skinne. For nå fremhever dette prosjektet en viktig lærdom innen tidsserieprognoser: **noen ganger er det enkleste det beste.**
 
 ---
 
